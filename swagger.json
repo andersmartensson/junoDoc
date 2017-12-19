@@ -1,0 +1,1108 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "0.1",
+    "title": "Take Care API",
+    "description": "This document describes the REST API interface to TakeCare.",
+    "contact": {
+      "email": "henrik.lampen@cgm.com"
+    }
+  },
+  "schemes": [
+    "https",
+    "http"
+  ],
+  "host": "your-takecare-api-gateway-server",
+  "basePath": "/",
+  "produces": [
+    "application/json"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "paths": {
+    "/login": {
+      "post": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Log in",
+        "description": "Log in (optionally in a certain role to a certain unit) and get a authorization token back.",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Login post object",
+            "schema": {
+              "type": "object",
+              "required": [
+                "user",
+                "password"
+              ],
+              "properties": {
+                "user": {
+                  "type": "string",
+                  "description": "Username of the user logging in. Usernames are case insensistive.",
+                  "example": "ADMIN"
+                },
+                "password": {
+                  "type": "string",
+                  "description": "password, encoded in base64 (UTF-8 encoding).",
+                  "example": "c2VjcmV0"
+                },
+                "method": {
+                  "type": "integer",
+                  "enum": [
+                    1,
+                    3
+                  ],
+                  "description": "Authentication method:\n  * `1` - password is a base64 encoded password\n  * `3` - password is a refresh token received in the ticket property of a login response.\n",
+                  "example": 1,
+                  "default": 1
+                },
+                "roleId": {
+                  "type": "integer",
+                  "example": 2,
+                  "default": 0,
+                  "description": "The id of the role to use when logging in. By default, or if roleId is 0, the user gets logged in with a union of all roles and is authorized to the union of all authorizations the different roles have. You can then use the roles property in the response to allow the user to chose a role, and a care unit which that role is authorized to, which then can be set for the session by calling /loginAt."
+                },
+                "careUnit": {
+                  "type": "integer",
+                  "example": 10,
+                  "default": 0,
+                  "description": "The care unit id of the care unit to log on to. If you set this to a valid care unit id, the user will be considered logged on to this unit for the session (or until you call /loginAt to log on to a different unit). If you do not supply this value or call /loginAt, you must supply the query parameter fromCareUnit with every call to show which care unit you are making the request from."
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "fullName": {
+                  "type": "string",
+                  "example": "FirstName LastName",
+                  "description": "Name of user."
+                },
+                "ok": {
+                  "$ref": "#/definitions/ok"
+                },
+                "roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "List of roles user has.",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "Id of role. Note that the id is specific for this user."
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "",
+                        "description": "Currently unused, always the empty string."
+                      },
+                      "professionId": {
+                        "type": "integer",
+                        "example": 2,
+                        "description": "Id of the profession the user has in this role, e.g. nurse or doctor."
+                      },
+                      "validFromDate": {
+                        "type": "integer",
+                        "example": 20100222,
+                        "description": "Date as an integer on the format YYYYMMDD from which the role is valid (inclusive). If the role has always been valid, this property is null."
+                      },
+                      "validToDate": {
+                        "type": "integer",
+                        "example": 20320214,
+                        "description": "Date as an integer on the format YYYYMMDD unitl which the role is valid (inclusive). If the role will always be valid, this property is null."
+                      },
+                      "employedAtUnitGroup": {
+                        "type": "object",
+                        "description": "The care unit group the user is employed at in this role.",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 10,
+                            "description": "The care unit group id"
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "Emergency ward",
+                            "description": "The name of the care unit group"
+                          }
+                        }
+                      },
+                      "authorizedToCareUnitGroups": {
+                        "type": "array",
+                        "description": "List of care unit groups, whose care unit members  the user is authorized to log on to in this role.",
+                        "items": {
+                          "type": "object",
+                          "description": "A care unit group",
+                          "properties": {
+                            "id": {
+                              "type": "integer",
+                              "example": 1,
+                              "description": "The care unit group id"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Emergency ward",
+                              "description": "The name of the care unit group"
+                            }
+                          }
+                        }
+                      },
+                      "authorizedToCareUnits": {
+                        "type": "array",
+                        "description": "List of individual care units the user is authorized to log on to in this role.",
+                        "items": {
+                          "type": "object",
+                          "description": "A care unit",
+                          "properties": {
+                            "id": {
+                              "type": "integer",
+                              "example": 1,
+                              "description": "The care unit id"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Surgery ward",
+                              "description": "The care unit's name"
+                            }
+                          }
+                        }
+                      },
+                      "authorizedToCashRegisters": {
+                        "type": "array",
+                        "example": [
+                          "001-01",
+                          "001-02"
+                        ],
+                        "description": "List of cash registers the users is authorized to log on to in this role.",
+                        "items": {
+                          "type": "string",
+                          "description": "Cash register name"
+                        }
+                      }
+                    }
+                  }
+                },
+                "sessionId": {
+                  "type": "array",
+                  "example": [
+                    -91,
+                    -90,
+                    -113,
+                    88,
+                    -11,
+                    -96,
+                    -31,
+                    -94,
+                    37,
+                    71,
+                    -24,
+                    100,
+                    -22,
+                    92,
+                    -127,
+                    127
+                  ],
+                  "items": {
+                    "type": "integer",
+                    "description": "Session id as an array of signed bytes."
+                  }
+                },
+                "sessionToken": {
+                  "type": "string",
+                  "example": "a5a68f58f5a0e1a22547e864ea5c817f",
+                  "description": "Session id as a hex string. Used to authenticate when sending requests after logging in."
+                },
+                "ticket": {
+                  "type": "string",
+                  "example": "7d29d23aafa7d70735f12748b1f537e5",
+                  "description": "Refresh token used to log in again if the session expires."
+                },
+                "userId": {
+                  "type": "integer",
+                  "format": "int64",
+                  "example": 191212121212,
+                  "description": "Id of user."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid combination of user and password.",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "422": {
+            "description": "Password isn't a valid base64 string or user isn't authorized to log in to the supplied care unit.",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/loginAt": {
+      "post": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Change care unit or role",
+        "description": "If you don't supply a care unit or role when logging in, you can use this call to set a care unit and role for the active session. If you do not set a care unit for the session by calling /loginAt, you need to tell the server from which care unit a call is made by supplying the *fromCareUnit* query parameter with every request.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "LoginAt post object",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "roleId": {
+                  "type": "integer",
+                  "description": "Role id of the user's role to use",
+                  "example": 2
+                },
+                "careUnit": {
+                  "type": "integer",
+                  "description": "Care unit id to log on to",
+                  "example": 10
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "units": {
+                  "type": "array",
+                  "description": "List of care units this role is authorized to log on to",
+                  "items": {
+                    "type": "integer",
+                    "description": "Care unit id",
+                    "example": 10
+                  }
+                },
+                "unitData": {
+                  "type": "array",
+                  "description": "Not used",
+                  "items": {
+                    "type": "array"
+                  }
+                },
+                "ok": {
+                  "$ref": "#/definitions/ok"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "User isn't authorized to log on to the supplied care unit",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/currentTime": {
+      "get": {
+        "tags": [
+          "currentTime"
+        ],
+        "summary": "Time stamp from Take Care.",
+        "description": "Gets a timestamp generated by the Take Care Server. Can be used for testing. Requires no login.",
+        "operationId": "currentTime",
+        "consumes": [
+          "none"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "ok": {
+                  "$ref": "#/definitions/ok"
+                },
+                "localTime": {
+                  "type": "integer",
+                  "example": 20171101123122,
+                  "description": "Current date according to server on format YYYYYMMDDHHmmSS e.g. year month day hour minutes seconds."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/emergencyLedger": {
+      "get": {
+        "tags": [
+          "emergencyLedger"
+        ],
+        "summary": "Gets the emergency ledger.",
+        "description": "Gets the emergency ledger from Take Care server.",
+        "operationId": "emergencyLedger",
+        "consumes": [
+          "none"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/parameters/fromCareUnit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "ok": {
+                  "$ref": "#/definitions/ok"
+                },
+                "emergencyLedger": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/EmergencyLedgerEntry"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/patients/{patientId}/administrations": {
+      "get": {
+        "tags": [
+          "medication",
+          "patient"
+        ],
+        "summary": "Gets patient administrations.",
+        "description": "Gets the administrations from Take Care server.",
+        "operationId": "administrations",
+        "consumes": [
+          "none"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "patientId",
+            "in": "path",
+            "description": "Id of patient. eg 191212121212.",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "$ref": "#/parameters/fromDate"
+          },
+          {
+            "$ref": "#/parameters/toDate"
+          },
+          {
+            "$ref": "#/parameters/fromCareUnit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "ok": {
+                  "$ref": "#/definitions/ok"
+                },
+                "administrations": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Administration"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "One (or both) of fromDate and toDate are not valid dates",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/patients/{patientId}/measurements": {
+      "get": {
+        "tags": [
+          "measurements",
+          "patient"
+        ],
+        "summary": "Gets patient measurements",
+        "description": "Gets the measurements from Take Care server.\n",
+        "operationId": "measurements",
+        "consumes": [
+          "none"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/parameters/patientId"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "type": "integer",
+            "description": "Date from which data should be collected (inclusive) in YYYYMMDD format, e.g. 20170201",
+            "required": false
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "type": "integer",
+            "description": "Date until data should be collected (inclusive) in YYYYMMDD format, e.g. 20170301",
+            "required": false
+          },
+          {
+            "$ref": "#/parameters/fromCareUnit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "ok": {
+                  "$ref": "#/definitions/ok"
+                },
+                "measurements": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/MeasurementIndexEntry"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "One (or both) of from and to are not valid dates",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        },
+        "security": []
+      }
+    }
+  },
+  "definitions": {
+    "Error": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "integer",
+          "example": -1,
+          "description": "Error code indicating type of error"
+        },
+        "message": {
+          "type": "string",
+          "example": "Message explaining reason for error"
+        }
+      }
+    },
+    "EmergencyLedgerEntry": {
+      "type": "object",
+      "properties": {
+        "patientId": {
+          "type": "integer",
+          "example": 191212121212,
+          "format": "int64",
+          "description": "Id of patient."
+        },
+        "patientFullName": {
+          "type": "string",
+          "example": "Tolvan Tolvansson",
+          "description": "The patient's full name."
+        },
+        "arrivalDateTime": {
+          "type": "integer",
+          "example": 201711171132,
+          "format": "int64",
+          "description": "Date and time when the patient arrived."
+        },
+        "reasonForVisit": {
+          "type": "object",
+          "description": "The reason for visiting",
+          "properties": {
+            "term": {
+              "type": "object",
+              "description": "The term describing the reason for visiting",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "example": 3173,
+                  "description": "The id of the term"
+                },
+                "name": {
+                  "type": "string",
+                  "example": "Feeling sick",
+                  "description": "The name of the term"
+                }
+              }
+            }
+          }
+        },
+        "location": {
+          "type": "object",
+          "description": "Room/location",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "example": 107,
+              "description": "The id of the room/location"
+            },
+            "name": {
+              "type": "string",
+              "example": "AK 1 902",
+              "description": "The name of the room/location"
+            }
+          }
+        },
+        "responsibleCareUnit": {
+          "type": "object",
+          "description": "The care unit responsible for the patient",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "example": 36,
+              "description": "The id of the care unit"
+            },
+            "name": {
+              "type": "string",
+              "example": "H - Akutmott (Kir 1)",
+              "description": "The name of the care unit"
+            },
+            "shortName": {
+              "type": "string",
+              "example": "K",
+              "description": "The short name of the care unit"
+            },
+            "careTeam": {
+              "type": "integer",
+              "example": 2,
+              "description": "The id of the care team (1-99) within the care unit."
+            }
+          }
+        },
+        "consultedCareUnit": {
+          "type": "object",
+          "description": "The consulted care unit",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "example": 36,
+              "description": "The id of the care unit"
+            },
+            "name": {
+              "type": "string",
+              "example": "H - Akutmott (Kir 1)",
+              "description": "The name of the care unit"
+            },
+            "shortName": {
+              "type": "string",
+              "example": "K",
+              "description": "The short name of the care unit"
+            },
+            "careTeam": {
+              "type": "integer",
+              "example": 2,
+              "description": "The id of the care team (1-99) within the care unit."
+            }
+          }
+        },
+        "comment": {
+          "type": "string",
+          "example": "Fall from ladder.",
+          "description": "A comment."
+        },
+        "priority": {
+          "type": "object",
+          "description": "The priority of the patient",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "example": 1,
+              "description": "The id of the priority"
+            },
+            "name": {
+              "type": "string",
+              "example": "1 Röd - Omedelbart",
+              "description": "The name of the priority"
+            },
+            "shortName": {
+              "type": "string",
+              "example": 1,
+              "description": "The short name of the priority"
+            },
+            "colourRGB": {
+              "type": "array",
+              "example": [
+                255,
+                0,
+                0
+              ],
+              "description": "A 3-element array with the RGB code of the colour used to display the priority in Take Care.",
+              "items": {
+                "type": "integer",
+                "description": "The R/G/B code of the colour",
+                "example": 255
+              }
+            }
+          }
+        },
+        "activities": {
+          "type": "array",
+          "description": "The activities for the patient that needs to be done.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "activity": {
+                "type": "object",
+                "description": "An activity.",
+                "properties": {
+                  "term": {
+                    "type": "object",
+                    "description": "A term describing the activity.",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 2312,
+                        "description": "The id of the term"
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "Change bandages",
+                        "description": "The name of the term"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responsibleDoctor": {
+          "type": "object",
+          "description": "The doctor responsible for the treatment of the patient",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "example": 191010101010,
+              "description": "The id of the doctor"
+            },
+            "username": {
+              "type": "string",
+              "example": "1DRC",
+              "description": "The username of the doctor"
+            },
+            "fullName": {
+              "type": "string",
+              "example": "Helene Testsson",
+              "description": "The full name of the doctor"
+            }
+          }
+        },
+        "responsibleNurse": {
+          "type": "object",
+          "description": "The nurse responsible for the treatment of the patient",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "example": 190303030303,
+              "description": "The id of the nurse"
+            },
+            "username": {
+              "type": "string",
+              "example": "X9KS",
+              "description": "The username of the nurse"
+            },
+            "fullName": {
+              "type": "string",
+              "example": "Arvid Arvidsson",
+              "description": "The full name of the nurse"
+            }
+          }
+        },
+        "doctorVisitAtDateTime": {
+          "type": "integer",
+          "example": 201711171132,
+          "format": "int64",
+          "description": "Date and time when the doctor visited."
+        },
+        "isNextPatient": {
+          "type": "boolean",
+          "example": true,
+          "description": "True if this patient is marked as next patient, otherwise false."
+        },
+        "dischargeDateTime": {
+          "type": "integer",
+          "example": 201711171132,
+          "format": "int64",
+          "description": "Date and time when the patient was discharged."
+        },
+        "isAffectedByDisaster": {
+          "type": "boolean",
+          "example": false,
+          "description": "True if this patient is affected by disaster, otherwise false."
+        },
+        "admissionStatus": {
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "description": "Status:\n * `0` - not answered\n * `1` - unlikely enrollment\n * `2` - likely enrollment\n * `3` - patient has been moved to another care unit\n"
+        },
+        "movedToLocation": {
+          "type": "integer",
+          "format": "int64",
+          "example": -91,
+          "description": "Id of care unit chosen as patient destination after emergency room visit. 0 = none chosen, -91: out (home), -92: another care unit, 1-999999999: care unit ID."
+        },
+        "isNotSecret": {
+          "type": "boolean",
+          "example": true,
+          "description": "True if information about this patient can be handed out, otherwise false."
+        },
+        "replyStatus": {
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2
+          ],
+          "description": "Status:\n * `0` - there are no replies (no envelope)\n * `1` - there are read replies (open envelope)\n * `2` - there are unread replies (closed envelope)\n"
+        },
+        "hasApprovedCareContact": {
+          "type": "boolean",
+          "example": false,
+          "description": "True if the patient has an approved care contact, otherwise false."
+        },
+        "careNeed": {
+          "type": "object",
+          "description": "The patient's care need",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "example": 3,
+              "description": "The id of the care need"
+            },
+            "name": {
+              "type": "string",
+              "example": "CAS 3 Litet omvård. behov",
+              "description": "The name of the care need"
+            },
+            "shortName": {
+              "type": "string",
+              "example": 3,
+              "description": "The short name of the care need"
+            }
+          }
+        },
+        "hasNurseSignal": {
+          "type": "boolean",
+          "example": false,
+          "description": "True if this patient is marked with a signal to nurse, otherwise false."
+        },
+        "status": {
+          "type": "integer",
+          "enum": [
+            0,
+            -1,
+            -2
+          ],
+          "description": "Status:\n * `0` - Patient is still in the emergency\n * `-1` - Removed/moved to history\n * `-2` - Cancelled\n"
+        },
+        "emergencyDocumentID": {
+          "type": "integer",
+          "example": 28112,
+          "format": "int32",
+          "description": "Id of the corresponding emergency document in the patient's record."
+        }
+      }
+    },
+    "Administration": {
+      "type": "object",
+      "properties": {
+        "administeredDosage": {
+          "type": "array",
+          "description": "A list of all administered dosages. This array normally only has one element, except when the administered medication order is for a mix/solution.",
+          "items": {
+            "type": "integer",
+            "description": "The dosage that was administrated to the patient.",
+            "example": 5
+          }
+        },
+        "administeredDosageText": {
+          "type": "array",
+          "description": "A list of all administered dosages as text which includes the dosage unit. This array normally only has one element, except when the administered medication order is for a mix/solution.",
+          "items": {
+            "type": "string",
+            "description": "The dosage as text.",
+            "example": "5 st"
+          }
+        },
+        "administrationDateTime": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Date of when administrated in format YYYYMMDDHHMM",
+          "example": 201703302000
+        },
+        "administrationOccasion": {
+          "type": "string",
+          "description": "Text of the occasion when the drug was supposed to be administered, according to the version of the medication order used to administer. This can be e.g. \"Dialysis\" or \"Day of surgery\".",
+          "example": "Dialysis"
+        },
+        "administrationRoute": {
+          "type": "string",
+          "description": "Route of administration.",
+          "example": "Orally"
+        },
+        "comment": {
+          "description": "Comment made by the user who administered the drug.",
+          "type": "string",
+          "example": "Patient is in pain"
+        },
+        "doseForm": {
+          "type": "array",
+          "description": "Name of dosage form i.e. if drug is a pill, solution etc. This array normally only has one element, except when the medication order is for a mix/solution.",
+          "items": {
+            "type": "string",
+            "example": "Pill"
+          }
+        },
+        "preparationText": {
+          "type": "array",
+          "description": "Name of the drug administered. This array normally only has one element, except when the administered medication order is for a mix/solution.",
+          "items": {
+            "type": "string",
+            "description": "Name of administered drug.",
+            "example": "Zocord/asa"
+          }
+        },
+        "prescriptionTime": {
+          "type": "string",
+          "description": "Time of when the drug was ordered to be administered in 24 hour format",
+          "example": "20:00"
+        },
+        "savedAtCareUnit": {
+          "type": "string",
+          "description": "Name of care unit where saved.",
+          "example": "Emergency ward 1"
+        },
+        "savedAtCareUnitId": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Id of care unit where saved.",
+          "example": 437
+        },
+        "savedByUserId": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Id of user who saved.",
+          "example": 191212121212
+        },
+        "strengthText": {
+          "type": "array",
+          "description": "Strength of all drugs, in text format. This array normally only has one element, except when the administered medication order is for a mix/solution.",
+          "items": {
+            "type": "string",
+            "description": "Strength of drug as text to display.",
+            "example": "200 mg"
+          }
+        }
+      }
+    },
+    "MeasurementIndexEntry": {
+      "type": "object",
+      "description": "A single measurement value and a reference to the document it was stored in. The properties key, documentId and auxKey together define the document the measurement was created by.",
+      "properties": {
+        "key": {
+          "type": "integer",
+          "example": 20140521112104,
+          "description": "First part of key"
+        },
+        "auxKey": {
+          "type": "integer",
+          "example": 191212121212,
+          "description": "Second part of key"
+        },
+        "careUnitId": {
+          "type": "integer",
+          "example": 10,
+          "description": "Id of care unit where measurement was saved"
+        },
+        "documentId": {
+          "type": "integer",
+          "example": 113,
+          "description": "Id of document where measurement was saved. Measurements can be saved both as independent documents and as a part of a case note. Note that document ids are unique for a given patient, but not globally unique."
+        },
+        "eventDateTime": {
+          "type": "integer",
+          "example": 201401101327,
+          "format": "int64",
+          "description": "Date and time when measurement was recorded."
+        },
+        "numDecimals": {
+          "type": "integer",
+          "description": "Number of decimals (e.g. number of digits after the decimal point) the value should be displayed with. This is important to be able to store e.g 4.20 without simplifying it to 4.2 on display, which would hide information on how precise the measurement was. A value of 0 means no data on the number of decimals, and to use default formatting."
+        },
+        "status": {
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "description": "Status:\n * `0` - Nothing special\n * `1` - This value has a comment\n * `2` - Value was outside reasonable limits for this term when registered\n * `3` - Value both has a comment and was outside reasonable limits\n"
+        },
+        "termId": {
+          "type": "integer",
+          "example": 101,
+          "description": "Id of the term the value is for (e.g. 101 for Temperature)"
+        },
+        "value": {
+          "type": "number",
+          "example": 38.2,
+          "description": "The registered value"
+        }
+      }
+    },
+    "ok": {
+      "type": "integer",
+      "default": 1,
+      "example": 1,
+      "description": "Sends back ok status. 1 means accepted, any value that isn't 1 means not accepted."
+    }
+  },
+  "parameters": {
+    "patientId": {
+      "name": "patientId",
+      "in": "path",
+      "description": "Id of patient, e.g. 191212121212",
+      "type": "integer",
+      "required": true
+    },
+    "fromDate": {
+      "name": "fromDate",
+      "in": "query",
+      "type": "integer",
+      "description": "Date from which data should be collected (inclusive) in YYYYMMDD format, eg. 20161231",
+      "required": false
+    },
+    "toDate": {
+      "name": "toDate",
+      "in": "query",
+      "type": "integer",
+      "description": "Date until which data should be collected (inclusive) in YYYYMMDD format, eg. 20170131",
+      "required": false
+    },
+    "fromCareUnit": {
+      "name": "fromCareUnit",
+      "in": "query",
+      "type": "integer",
+      "description": "The unit the user is logged in to. This is used to filter the result based on authorizations between units. If supplied, this value overrides the unit you have logged in to by POSTing to loginAt.",
+      "required": false
+    }
+  },
+  "securityDefinitions": {
+    "takecare_auth": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "Authorization",
+      "description": "We use Bearer authorization, so the contents of the header should be \"Bearer {{token}}\" where {{token}} is the sessionToken you received in the response to your login request."
+    }
+  },
+  "responses": {
+    "415": {
+      "description": "Unsupported media type. You didn't set the Content-Type header to application/JSON when POST-ing data."
+    },
+    "422": {
+      "description": "Unprocessable entity. The request was syntactically valid but did not validate. Maybe a care unit id or a date you have provided is invalid."
+    },
+    "500": {
+      "description": "Unexpected error. The server has experienced an unexpected error which has been logged."
+    },
+    "502": {
+      "description": "Bad gateway. The API gateway could not reach the TakeCare server."
+    },
+    "503": {
+      "description": "Service unavailable. The TakeCare is currently performing a snapshot backup and has not processed your request. Please retry the request in 15 seconds."
+    },
+    "badRequest": {
+      "description": "Bad request. The request body contains invalid JSON that cannot be parsed or cannot be decoded as UTF-8.",
+      "schema": {
+        "$ref": "#/definitions/Error"
+      }
+    },
+    "authRequired": {
+      "description": "Authentication required. You sent a request that requires authentication (i.e. you need to be logged in) but you didn't send an Authorization header or the session token you sent as part of that header has expired. Log in or refresh your session token by using the refresh ticket you got as part of the login response, and try again.",
+      "schema": {
+        "$ref": "#/definitions/Error"
+      }
+    },
+    "forbidden": {
+      "description": "Forbidden. You are not authorized to make this request.",
+      "schema": {
+        "$ref": "#/definitions/Error"
+      }
+    },
+    "notFound": {
+      "description": "Not found. There is no defined route for the URL you requested, or part of the URL (e.g. a patient id) is not in a valid format.",
+      "schema": {
+        "$ref": "#/definitions/Error"
+      }
+    },
+    "badMethod": {
+      "description": "Bad method. The URL is correct, but you used the wrong HTTP method, e.g. you tried to POST to a URL that only supports GET.",
+      "schema": {
+        "$ref": "#/definitions/Error"
+      }
+    }
+  }
+}
