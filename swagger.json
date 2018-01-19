@@ -400,6 +400,54 @@
         "security": []
       }
     },
+    "/patients/{patientId}/activities": {
+      "get": {
+        "tags": [
+          "activities",
+          "patient"
+        ],
+        "summary": "Gets patient activities.",
+        "description": "Gets the activities from Take Care server.",
+        "operationId": "activities",
+        "consumes": [
+          "none"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/parameters/patientId"
+          },
+          {
+            "$ref": "#/parameters/fromCareUnit"
+          },
+          {
+            "$ref": "#/parameters/linkedDocId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "ok": {
+                  "$ref": "#/definitions/ok"
+                },
+                "activities": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Activity"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
     "/patients/{patientId}/administrations": {
       "get": {
         "tags": [
@@ -417,11 +465,7 @@
         ],
         "parameters": [
           {
-            "name": "patientId",
-            "in": "path",
-            "description": "Id of patient. eg 191212121212.",
-            "required": true,
-            "type": "integer"
+            "$ref": "#/parameters/patientId"
           },
           {
             "$ref": "#/parameters/fromDate"
@@ -546,10 +590,7 @@
       "type": "object",
       "properties": {
         "patientId": {
-          "type": "integer",
-          "example": 191212121212,
-          "format": "int64",
-          "description": "Id of patient."
+          "$ref": "#/definitions/patientId"
         },
         "patientFullName": {
           "type": "string",
@@ -703,20 +744,7 @@
                 "description": "An activity.",
                 "properties": {
                   "term": {
-                    "type": "object",
-                    "description": "A term describing the activity.",
-                    "properties": {
-                      "id": {
-                        "type": "integer",
-                        "example": 2312,
-                        "description": "The id of the term"
-                      },
-                      "name": {
-                        "type": "string",
-                        "example": "Change bandages",
-                        "description": "The name of the term"
-                      }
-                    }
+                    "$ref": "#/definitions/Term"
                   }
                 }
               }
@@ -724,46 +752,10 @@
           }
         },
         "responsibleDoctor": {
-          "type": "object",
-          "description": "The doctor responsible for the treatment of the patient",
-          "properties": {
-            "id": {
-              "type": "integer",
-              "example": 191010101010,
-              "description": "The id of the doctor"
-            },
-            "username": {
-              "type": "string",
-              "example": "1DRC",
-              "description": "The username of the doctor"
-            },
-            "fullName": {
-              "type": "string",
-              "example": "Helene Testsson",
-              "description": "The full name of the doctor"
-            }
-          }
+          "$ref": "#/definitions/User"
         },
         "responsibleNurse": {
-          "type": "object",
-          "description": "The nurse responsible for the treatment of the patient",
-          "properties": {
-            "id": {
-              "type": "integer",
-              "example": 190303030303,
-              "description": "The id of the nurse"
-            },
-            "username": {
-              "type": "string",
-              "example": "X9KS",
-              "description": "The username of the nurse"
-            },
-            "fullName": {
-              "type": "string",
-              "example": "Arvid Arvidsson",
-              "description": "The full name of the nurse"
-            }
-          }
+          "$ref": "#/definitions/User"
         },
         "doctorVisitAtDateTime": {
           "type": "integer",
@@ -801,7 +793,7 @@
           "type": "integer",
           "format": "int64",
           "example": -91,
-          "description": "Id of care unit chosen as patient destination after emergency room visit. 0 = none chosen, -91: out (home), -92: another care unit, 1-999999999: care unit ID."
+          "description": "Id of care unit chosen as patient destination after emergency room visit. 0 = none chosen, -91: out (home), -92: another care unit, -95: referred (hänvisad), 1-999999999: care unit ID."
         },
         "isNotSecret": {
           "type": "boolean",
@@ -862,6 +854,247 @@
           "example": 28112,
           "format": "int32",
           "description": "Id of the corresponding emergency document in the patient's record."
+        }
+      }
+    },
+    "Activity": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "example": "20161020162824-1-2774",
+          "description": "Id of the activity."
+        },
+        "status": {
+          "type": "integer",
+          "enum": [
+            0,
+            -2,
+            -3
+          ],
+          "description": "Status:\n * `0` - Normal\n * `-2` - Cancelled\n * `-3` - Not performed \n"
+        },
+        "created": {
+          "type": "object",
+          "description": "Information about the creation of this activity.",
+          "properties": {
+            "user": {
+              "$ref": "#/definitions/User"
+            },
+            "dateTime": {
+              "type": "integer",
+              "example": 201711171132,
+              "format": "int64",
+              "description": "Date and time when the activity was created."
+            },
+            "careUnit": {
+              "$ref": "#/definitions/CareUnit"
+            }
+          }
+        },
+        "lastSaved": {
+          "type": "object",
+          "description": "Information about when the activity was last saved",
+          "properties": {
+            "user": {
+              "$ref": "#/definitions/User"
+            },
+            "dateTime": {
+              "type": "integer",
+              "example": 201711171132,
+              "format": "int64",
+              "description": "Date and time when the activity was last saved."
+            },
+            "careUnit": {
+              "$ref": "#/definitions/CareUnit"
+            }
+          }
+        },
+        "explanationInstruction": {
+          "type": "string",
+          "example": "A comment...",
+          "description": "Instructions or a descriptive comment made by a user."
+        },
+        "term": {
+          "$ref": "#/definitions/Term"
+        },
+        "profession": {
+          "type": "object",
+          "description": "The profession of the user that is supposed to perform the activity.",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "example": 9,
+              "description": "The id of the profession."
+            },
+            "shortName": {
+              "type": "string",
+              "example": "Nap",
+              "description": "The short name of the profession."
+            },
+            "singularName": {
+              "type": "string",
+              "example": "Naprapat",
+              "description": "The singular name of the profession."
+            },
+            "pluralName": {
+              "type": "string",
+              "example": "Naprapater",
+              "description": "The plural name of the profession."
+            },
+            "code": {
+              "type": "string",
+              "example": "00",
+              "description": "The code of the profession."
+            }
+          }
+        },
+        "linkedDocument": {
+          "type": "object",
+          "description": "A document that this activity is linked to.",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "example": 49,
+              "description": "The id of the document."
+            },
+            "type": {
+              "type": "object",
+              "description": "The type of the document.",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "example": 20,
+                  "description": "The id of the document type."
+                },
+                "name": {
+                  "type": "string",
+                  "example": "Akutuppgifter",
+                  "description": "The name of the document type."
+                }
+              }
+            }
+          }
+        },
+        "signed": {
+          "type": "object",
+          "description": "An object describing the signing of the document.",
+          "properties": {
+            "user": {
+              "$ref": "#/definitions/User"
+            },
+            "dateTime": {
+              "type": "integer",
+              "format": "int64",
+              "example": 20171213130718,
+              "description": "The datetime for when the document was signed."
+            }
+          }
+        },
+        "signerUser": {
+          "$ref": "#/definitions/User"
+        },
+        "locked": {
+          "type": "object",
+          "description": "An object describing the locking of the description in the activity.",
+          "properties": {
+            "user": {
+              "$ref": "#/definitions/User"
+            },
+            "dateTime": {
+              "type": "integer",
+              "format": "int64",
+              "example": 20171213130718,
+              "description": "The datetime for when the description in the activity was locked."
+            }
+          }
+        },
+        "priority": {
+          "type": "object",
+          "description": "The priority of the activity.",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "example": 1,
+              "description": "Id of the priority."
+            },
+            "name": {
+              "type": "string",
+              "example": "Prioritet 1",
+              "description": "The name of the priority."
+            },
+            "value": {
+              "type": "integer",
+              "example": 1,
+              "description": "The priority value."
+            }
+          }
+        },
+        "completedSetBySystemDateTime": {
+          "type": "integer",
+          "format": "int64",
+          "example": 20171213132011,
+          "description": "The datetime for when the activity was performed."
+        },
+        "completedSetByUserDate": {
+          "type": "integer",
+          "example": 20171213,
+          "description": "The date set by the user for when the activity was performed."
+        },
+        "completedSetByUserTime": {
+          "type": "integer",
+          "example": 1320,
+          "description": "The time set by the user for when the activity was performed."
+        },
+        "frequency": {
+          "type": "object",
+          "description": "The frequency of this activity.",
+          "properties": {
+            "type": {
+              "type": "object",
+              "description": "The type of the frequency.",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "example": 0,
+                  "description": "The id of the frequency type.\n  0 - the content property contains a FrequencySingle object\n  1 - the content property contains a FrequencyDaily object\n  2 - the content property contains a FrequencyScheduleDay object\n  3 - the content property contains a FrequencyScheduleWeek object\n  4 - the content property contains a FrequencyContinuous object\n  5 - the content property contains a FrequencyIrregular object"
+                },
+                "name": {
+                  "type": "string",
+                  "example": "Single",
+                  "description": "The name of the frequency type."
+                }
+              }
+            },
+            "content": {
+              "type": "object",
+              "enum": [
+                {
+                  "$ref": "#/definitions/FrequencySingle"
+                },
+                {
+                  "$ref": "#/definitions/FrequencyDaily"
+                },
+                {
+                  "$ref": "#/definitions/FrequencyScheduleDay"
+                },
+                {
+                  "$ref": "#/definitions/FrequencyScheduleWeek"
+                },
+                {
+                  "$ref": "#/definitions/FrequencyContinuous"
+                },
+                {
+                  "$ref": "#/definitions/FrequencyIrregular"
+                }
+              ]
+            }
+          }
+        },
+        "basedOnActivityId": {
+          "type": "string",
+          "example": "20161020162825-1-835",
+          "description": "The id of the activity that this activity was based on."
         }
       }
     },
@@ -1018,6 +1251,269 @@
       "default": 1,
       "example": 1,
       "description": "Sends back ok status. 1 means accepted, any value that isn't 1 means not accepted."
+    },
+    "patientId": {
+      "type": "integer",
+      "example": 191212121212,
+      "format": "int64",
+      "description": "An id of a patient."
+    },
+    "User": {
+      "type": "object",
+      "description": "A user.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "example": 191010101010,
+          "description": "The id of the user."
+        },
+        "username": {
+          "type": "string",
+          "example": "4HQ7",
+          "description": "The username of the user."
+        },
+        "fullName": {
+          "type": "string",
+          "example": "Anna Andersson",
+          "description": "The full name of the user."
+        }
+      }
+    },
+    "CareUnit": {
+      "type": "object",
+      "description": "A care unit.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "example": 36,
+          "description": "The id of the care unit."
+        },
+        "name": {
+          "type": "string",
+          "example": "H - Akutmott (Kir 1)",
+          "description": "The name of the care unit."
+        }
+      }
+    },
+    "Term": {
+      "type": "object",
+      "description": "A term.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "example": 2774,
+          "description": "The id of the term."
+        },
+        "name": {
+          "type": "string",
+          "example": "Change bandages.",
+          "description": "The name of the term."
+        }
+      }
+    },
+    "FrequencySingle": {
+      "type": "object",
+      "properties": {
+        "plannedDate": {
+          "type": "integer",
+          "example": 20171213,
+          "description": "The planned date."
+        },
+        "plannedTime": {
+          "type": "integer",
+          "example": 1000,
+          "description": "The planned time."
+        }
+      }
+    },
+    "FrequencyDaily": {
+      "type": "object",
+      "properties": {
+        "startDate": {
+          "type": "integer",
+          "example": 20171213,
+          "description": "The start date."
+        },
+        "startTime": {
+          "type": "integer",
+          "example": 1000,
+          "description": "The start time."
+        },
+        "endDate": {
+          "type": "integer",
+          "example": 20171215,
+          "description": "The end date."
+        },
+        "endTime": {
+          "type": "integer",
+          "example": 1800,
+          "description": "The end time."
+        },
+        "times": {
+          "type": "array",
+          "description": "The times for when the activity should be performed.",
+          "items": {
+            "type": "integer",
+            "description": "A time when the activity should be performed.",
+            "example": 2100
+          }
+        }
+      }
+    },
+    "FrequencyScheduleDay": {
+      "type": "object",
+      "properties": {
+        "everyNDays": {
+          "type": "integer",
+          "example": 3,
+          "description": "The interval in days."
+        },
+        "startDate": {
+          "type": "integer",
+          "example": 20171213,
+          "description": "The start date."
+        },
+        "startTime": {
+          "type": "integer",
+          "example": 1000,
+          "description": "The start time."
+        },
+        "endDate": {
+          "type": "integer",
+          "example": 20171215,
+          "description": "The end date."
+        },
+        "endTime": {
+          "type": "integer",
+          "example": 1800,
+          "description": "The end time."
+        },
+        "times": {
+          "type": "array",
+          "description": "The times for when the activity should be performed.",
+          "items": {
+            "type": "integer",
+            "description": "A time when the activity should be performed.",
+            "example": 2100
+          }
+        }
+      }
+    },
+    "FrequencyScheduleWeek": {
+      "type": "object",
+      "properties": {
+        "everyNWeeks": {
+          "type": "integer",
+          "example": 2,
+          "description": "The interval in weeks."
+        },
+        "isPerformedOnDays": {
+          "type": "array",
+          "description": "The days of the week when the activity should be performed.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "Mondays",
+              "Tuesdays",
+              "Wednesdays",
+              "Thursdays",
+              "Fridays",
+              "Saturdays",
+              "Sundays"
+            ]
+          }
+        },
+        "startDate": {
+          "type": "integer",
+          "example": 20171213,
+          "description": "The start date."
+        },
+        "startTime": {
+          "type": "integer",
+          "example": 1000,
+          "description": "The start time."
+        },
+        "endDate": {
+          "type": "integer",
+          "example": 20171215,
+          "description": "The end date."
+        },
+        "endTime": {
+          "type": "integer",
+          "example": 1800,
+          "description": "The end time."
+        },
+        "times": {
+          "type": "array",
+          "description": "The times for when the activity should be performed.",
+          "items": {
+            "type": "integer",
+            "description": "A time when the activity should be performed.",
+            "example": 2100
+          }
+        }
+      }
+    },
+    "FrequencyContinuous": {
+      "type": "object",
+      "properties": {
+        "startDate": {
+          "type": "integer",
+          "example": 20171213,
+          "description": "The start date."
+        },
+        "startTime": {
+          "type": "integer",
+          "example": 1000,
+          "description": "The start time."
+        },
+        "endDate": {
+          "type": "integer",
+          "example": 20171215,
+          "description": "The end date."
+        },
+        "endTime": {
+          "type": "integer",
+          "example": 1800,
+          "description": "The end time."
+        }
+      }
+    },
+    "FrequencyIrregular": {
+      "type": "object",
+      "properties": {
+        "startDate": {
+          "type": "integer",
+          "example": 20171213,
+          "description": "The start date."
+        },
+        "startTime": {
+          "type": "integer",
+          "example": 1000,
+          "description": "The start time."
+        },
+        "endDate": {
+          "type": "integer",
+          "example": 20171215,
+          "description": "The end date."
+        },
+        "endTime": {
+          "type": "integer",
+          "example": 1800,
+          "description": "The end time."
+        },
+        "irregularDateTimes": {
+          "type": "array",
+          "description": "The date times for when the activity should be performed.",
+          "items": {
+            "type": "integer",
+            "format": "int64",
+            "description": "A date time when the activity should be performed.",
+            "example": 201712132100
+          }
+        }
+      }
     }
   },
   "parameters": {
@@ -1047,6 +1543,13 @@
       "in": "query",
       "type": "integer",
       "description": "The unit the user is logged in to. This is used to filter the result based on authorizations between units. If supplied, this value overrides the unit you have logged in to by POSTing to loginAt.",
+      "required": false
+    },
+    "linkedDocId": {
+      "name": "linkedDocId",
+      "in": "query",
+      "type": "integer",
+      "description": "If supplied, only documents linked to the document with this id will be returned.",
       "required": false
     }
   },
