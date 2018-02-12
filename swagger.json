@@ -106,10 +106,8 @@
                         "example": "",
                         "description": "Currently unused, always the empty string."
                       },
-                      "professionId": {
-                        "type": "integer",
-                        "example": 2,
-                        "description": "Id of the profession the user has in this role, e.g. nurse or doctor."
+                      "profession": {
+                        "$ref": "#/definitions/Profession"
                       },
                       "validFromDate": {
                         "type": "integer",
@@ -440,6 +438,155 @@
                   "items": {
                     "$ref": "#/definitions/Activity"
                   }
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/patients/{patientId}/activities/{activityId}/markAsPerformed": {
+      "post": {
+        "tags": [
+          "activities",
+          "patient"
+        ],
+        "summary": "Mark patient activity as performed.",
+        "description": "Mark patient activity as performed.",
+        "operationId": "activityMarkAsPerformed",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/parameters/patientId"
+          },
+          {
+            "$ref": "#/parameters/activityId"
+          },
+          {
+            "$ref": "#/parameters/fromCareUnit"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "markAsPerformed post object",
+            "required": false,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "performedDateTime": {
+                  "type": "integer",
+                  "description": "At what time the activity was performed (yyyyMMddhhmm).",
+                  "example": 201801080900
+                },
+                "plannedAt": {
+                  "type": "object",
+                  "description": "At what point in time the activity was planned to be performed. Must correspond to an element in the plannedAt collection in the corresponding activity.",
+                  "properties": {
+                    "date": {
+                      "type": "integer",
+                      "example": 20180108
+                    },
+                    "time": {
+                      "type": "integer",
+                      "example": 1000
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "ok": {
+                  "$ref": "#/definitions/ok"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/patients/{patientId}/activities/{activityId}/markAsNotPerformed": {
+      "post": {
+        "tags": [
+          "activities",
+          "patient"
+        ],
+        "summary": "Mark patient activity as not performed.",
+        "description": "Mark patient activity as not performed.",
+        "operationId": "activityMarkAsNotPerformed",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/parameters/patientId"
+          },
+          {
+            "$ref": "#/parameters/activityId"
+          },
+          {
+            "$ref": "#/parameters/fromCareUnit"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "markAsNotPerformed post object",
+            "required": false,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "performedDateTime": {
+                  "type": "integer",
+                  "description": "At what time the activity was not performed (yyyyMMddhhmm).",
+                  "example": 201801080900
+                },
+                "plannedAt": {
+                  "type": "object",
+                  "description": "At what point in time the activity was planned to be performed. Must correspond to an element in the plannedAt collection in the corresponding activity.",
+                  "properties": {
+                    "date": {
+                      "type": "integer",
+                      "example": 20180108
+                    },
+                    "time": {
+                      "type": "integer",
+                      "example": 1000
+                    }
+                  }
+                },
+                "commentToWhyNotPerformed": {
+                  "type": "string",
+                  "description": "An optional comment explaining why the activity was not performed.",
+                  "example": "No need for it."
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "ok": {
+                  "$ref": "#/definitions/ok"
                 }
               }
             }
@@ -919,35 +1066,7 @@
           "$ref": "#/definitions/Term"
         },
         "profession": {
-          "type": "object",
-          "description": "The profession of the user that is supposed to perform the activity.",
-          "properties": {
-            "id": {
-              "type": "integer",
-              "example": 9,
-              "description": "The id of the profession."
-            },
-            "shortName": {
-              "type": "string",
-              "example": "Nap",
-              "description": "The short name of the profession."
-            },
-            "singularName": {
-              "type": "string",
-              "example": "Naprapat",
-              "description": "The singular name of the profession."
-            },
-            "pluralName": {
-              "type": "string",
-              "example": "Naprapater",
-              "description": "The plural name of the profession."
-            },
-            "code": {
-              "type": "string",
-              "example": "00",
-              "description": "The code of the profession."
-            }
-          }
+          "$ref": "#/definitions/Profession"
         },
         "linkedDocument": {
           "type": "object",
@@ -1045,6 +1164,25 @@
           "type": "integer",
           "example": 1320,
           "description": "The time set by the user for when the activity was performed."
+        },
+        "plannedAt": {
+          "type": "array",
+          "description": "At what points in time the activity is planned to be performed. To limit the size of the collection, only items for yesterday, today and tomorrow are returned. Single activities (frequency type id 0) always only have one element.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "date": {
+                "type": "integer",
+                "example": 20180110,
+                "description": "The date when a specific activity is planned to be performed."
+              },
+              "time": {
+                "type": "integer",
+                "example": 1000,
+                "description": "The time when a specific activity is planned to be performed."
+              }
+            }
+          }
         },
         "frequency": {
           "type": "object",
@@ -1277,6 +1415,37 @@
           "type": "string",
           "example": "Anna Andersson",
           "description": "The full name of the user."
+        }
+      }
+    },
+    "Profession": {
+      "type": "object",
+      "description": "A profession.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "example": 9,
+          "description": "The id of the profession."
+        },
+        "shortName": {
+          "type": "string",
+          "example": "Nap",
+          "description": "The short name of the profession."
+        },
+        "singularName": {
+          "type": "string",
+          "example": "Naprapat",
+          "description": "The singular name of the profession."
+        },
+        "pluralName": {
+          "type": "string",
+          "example": "Naprapater",
+          "description": "The plural name of the profession."
+        },
+        "code": {
+          "type": "string",
+          "example": "00",
+          "description": "The code of the profession."
         }
       }
     },
@@ -1551,6 +1720,13 @@
       "type": "integer",
       "description": "If supplied, only documents linked to the document with this id will be returned.",
       "required": false
+    },
+    "activityId": {
+      "name": "activityId",
+      "in": "path",
+      "description": "Id of activity, e.g. 20161020162824-1-2774",
+      "type": "string",
+      "required": true
     }
   },
   "securityDefinitions": {
